@@ -1,0 +1,56 @@
+format long g
+% given info
+tspan = [0:100];
+w = 0.01;
+mu = 1; % DU^3/TU^2
+deg = pi/180;
+% orbital elements
+a = 1;
+e = 0.5;
+i = 45;
+w_ap = w*cosd(i)*tspan;
+Omega = -w*tspan-w_ap;
+M = -tspan/(2*mu*a)-w*(1-e^2)^0.5*cosd(i)*tspan;
+% find true anomaly from mean anomaly
+EA = CalcEA(M,e,10^-8);
+TA = 2*atan(sqrt((1+e)/(1-e))*tan(EA/2));
+h = sqrt(mu*a*(1-e^2));
+T = 2*pi*sqrt(a^3/mu);
+coe = [h, e, Omega*deg, i*deg, w_ap*deg, TA*deg];
+[r, v] = sv_from_coe(coe, mu);
+
+Y0 = [r(1); r(2); r(3); v(1); v(2); v(3)];
+options = odeset('RelTol', 1e-13);
+% numerical integration
+[t, Y] = ode45(@orbit, tspan, Y0, options);
+x = Y(:, 1);
+y = Y(:, 2);
+z = Y(:, 3);
+
+% create figure
+figure; hold on
+title('Satellite Orbit', 'Interpreter', 'Latex')
+xlabel('x (DU)', 'Interpreter', 'Latex')
+ylabel('y (DU)', 'Interpreter', 'Latex')
+zlabel('z (DU)', 'Interpreter', 'Latex')
+axis equal
+grid minor
+view(30, 30)
+% plot trajectory
+plot3(x, y, z, 'k')
+hold off
+
+% ODE function
+function dYdt = orbit(t, Y)
+    mu = 1;
+    x = Y(1);
+    y = Y(2);
+    z = Y(3);
+    vx = Y(4);
+    vy = Y(5);
+    vz = Y(6);
+    xddot = -mu/(x^2+y^2+z^2)^(3/2)*x;
+    yddot = -mu/(x^2+y^2+z^2)^(3/2)*y;
+    zddot = -mu/(x^2+y^2+z^2)^(3/2)*z;
+    dYdt = [vx;vy;vz;xddot;yddot;zddot];
+end
